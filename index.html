@@ -1,0 +1,590 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<title>mapboxgl-jupyter viz</title>
+<meta charset='UTF-8' />
+<meta name='viewport'
+      content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+<script type='text/javascript'
+        src='https://api.tiles.mapbox.com/mapbox-gl-js/v1.0.0/mapbox-gl.js'></script>
+<link type='text/css'
+      href='https://api.tiles.mapbox.com/mapbox-gl-js/v1.0.0/mapbox-gl.css' 
+      rel='stylesheet' />
+
+<style type='text/css'>
+    body { margin:0; padding:0; }
+    .map { position: absolute; top:0; bottom:0; width:100%; }
+    .legend {
+        background-color: white;
+        color: #6e6e6e;
+        border-radius: 3px;
+        bottom: 10px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.10);
+        font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+        padding: 0;
+        position: absolute;
+        right: 10px;
+        z-index: 1;
+        min-width: 100px;
+    }
+   .legend.horizontal {bottom: 10px; text-align: left;}
+
+    /* legend header */
+    .legend .legend-header { border-radius: 3px 3px 0 0; background: white; }
+    .legend .legend-title {
+        padding: 6px 12px 6px 12px;
+        text-shadow: 0 0 2px white;
+        text-transform: capitalize;
+        text-align: center;
+        font-weight: bold !important;
+        font-size: 14px;
+        font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+        max-width: 160px;
+    }
+    .legend-title {padding: 6px 12px 6px 12px; text-shadow: 0 0 2px #FFF; text-transform: capitalize; text-align: center; max-width: 160px; font-size: 0.9em; font-weight: bold;}
+    .legend.horizontal .legend-title {text-align: left;}
+
+    /* legend items */
+    .legend-content {margin: 6px 12px 6px 12px; overflow: hidden; padding: 0; float: left; list-style: none; font-size: 0.8em;}
+    .legend.vertical .legend-item {white-space: nowrap;}
+    .legend-value {display: inline-block; line-height: 18px; vertical-align: top;}
+    .legend.horizontal ul.legend-content li.legend-item .legend-value,
+    .legend.horizontal ul.legend-content li.legend-item {display: inline-block; float: left; width: 30px; margin-bottom: 0; text-align: center; min-height: 30px;}
+
+    /* legend key styles */
+    .legend-key {display: inline-block; height: 10px;}
+    .legend-key.default, .legend-key.square {border-radius: 0;}
+    .legend-key.circle {border-radius: 50%;}
+    .legend-key.rounded-square {border-radius: 20%;}
+    .legend.vertical .legend-key {width: 10px; margin-right: 5px; margin-left: 1px;}
+    .legend.horizontal .legend-key {width: 30px; margin-right: 0; margin-top: 1px; float: left;}
+    .legend.horizontal .legend-key.square, .legend.horizontal .legend-key.rounded-square, .legend.horizontal .legend-key.circle {margin-left: 10px; width: 10px;}
+    .legend.horizontal .legend-key.line {margin-left: 5px;}
+    .legend.horizontal .legend-key.line, .legend.vertical .legend-key.line {border-radius: 10%; width: 20px; height: 3px; margin-bottom: 2px;}
+
+    /* gradient bar alignment */
+    .gradient-bar {margin: 6px 12px 6px 12px;}
+    .legend.horizontal .gradient-bar {width: 88%; height: 10px;}
+    .legend.vertical .gradient-bar {width: 10px; min-height: 50px; position: absolute; bottom: 4px;}
+
+    /* contiguous vertical bars (discrete) */
+    .legend.vertical.contig .legend-key {height: 15px; width: 10px;}
+    .legend.vertical.contig li.legend-item {height: 15px;}
+    .legend.vertical.contig {padding-bottom: 6px;}
+
+    /* vertical radius legend */
+    .legend.horizontal.legend-variable-radius ul.legend-content li.legend-item .legend-value,
+    .legend.horizontal.legend-variable-radius ul.legend-content li.legend-item {width: 30px; min-height: 20px;}
+
+    /* scale annotation */
+    .mapboxgl-ctrl.mapboxgl-ctrl-scale { border-color: #6e6e6e; 
+                                         background-color: white; 
+                                         color: #131516; }
+</style>
+
+
+<style>
+    .gradient-bar.bordered, .legend-key.bordered { border: solid grey 0.1px; }
+</style>
+
+
+</head>
+<body>
+
+<div id='map' class='map'></div>
+
+<script type='text/javascript'>
+
+var legendHeader;
+
+function calcColorLegend(myColorStops, title) {
+    // create legend
+    var legend = document.createElement('div'),
+        legendContainer = document.getElementsByClassName('mapboxgl-ctrl-bottom-right')[0];
+
+    if ('circle' === 'contiguous-bar') {
+        legend.className = 'legend vertical contig';
+    }
+    else {
+        legend.className = 'legend vertical';
+    }
+    legend.id = 'legend-0';
+    document.body.appendChild(legend);
+    // add legend header and content elements
+    var mytitle = document.createElement('div'),
+        legendContent = document.createElement('ul');
+    legendHeader = document.createElement('div');
+    mytitle.textContent = title;
+    mytitle.className = 'legend-title'
+    legendHeader.className = 'legend-header'
+    legendContent.className = 'legend-content'
+    legendHeader.appendChild(mytitle);
+    legend.appendChild(legendHeader);
+    legend.appendChild(legendContent);
+    if (false === true) {
+        var gradientText = 'linear-gradient(to right, ',
+            gradient = document.createElement('div');
+        gradient.className = 'gradient-bar';
+        legend.appendChild(gradient);
+    }
+    // calculate a legend entries on a Mapbox GL Style Spec property function stops array
+    for (p = 0; p < myColorStops.length; p++) {
+        if (!!document.getElementById('legend-color-points-value-' + p)) {
+            // update the legend if it already exists
+            document.getElementById('legend-color-points-value-' + p).textContent = myColorStops[p][0];
+            document.getElementById('legend-color-points-id-' + p).style.backgroundColor = myColorStops[p][1];
+        }
+        else {
+            // create the legend if it doesn't yet exist
+            var item = document.createElement('li');
+            item.className = 'legend-item';
+            var key = document.createElement('span');
+            key.className = 'legend-key circle';
+            key.id = 'legend-color-points-id-' + p;
+            key.style.backgroundColor = myColorStops[p][1];
+            var value = document.createElement('span');
+            value.className = 'legend-value';
+            value.id = 'legend-color-points-value-' + p;
+            item.appendChild(key);
+            item.appendChild(value);
+            legendContent.appendChild(item);
+            
+            data = document.getElementById('legend-color-points-value-' + p)
+            // round number values in legend if precision defined
+            if ((typeof(myColorStops[p][0]) == 'number') && (typeof(null) == 'number')) {
+                data.textContent = myColorStops[p][0].toFixed(null);
+            }
+            else {
+                data.textContent = myColorStops[p][0];
+            }
+            // add color stop to gradient list
+            if (false === true) {
+                if (p < myColorStops.length - 1) {
+                    gradientText = gradientText + myColorStops[p][1] + ', ';
+                }
+                else {
+                    gradientText = gradientText + myColorStops[p][1] + ')';
+                }
+                if ('vertical' === 'vertical') {
+                    gradientText = gradientText.replace('to right', 'to bottom');
+                }
+            }
+        }
+    }
+    if (false === true) {
+        // convert to gradient scale appearance
+        gradient.style.background = gradientText;
+        // hide legend keys generated above
+        var keys = document.getElementsByClassName('legend-key');
+        for (var i=0; i < keys.length; i++) {
+            keys[i].style.visibility = 'hidden';
+        }
+        if ('vertical' === 'vertical') {
+            gradient.style.height = (legendContent.offsetHeight - 6) + 'px';
+        }
+    }
+    // add class for styling bordered legend keys
+    if (true) {
+        var keys = document.getElementsByClassName('legend-key');
+        for (var i=0; i < keys.length; i++) {
+            if (keys[i]) {
+                keys[i].classList.add('bordered');
+            }
+        }
+        var gradientBars = document.getElementsByClassName('gradient-bar');
+        for (var i=0; i < keys.length; i++) {
+            if (gradientBars[i]) {
+                gradientBars[i].classList.add('bordered');
+            }
+        }
+    }
+    // update right-margin for compact Mapbox attribution based on calculated legend width
+    updateAttribMargin(legend);
+    updateLegendMargin(legend);
+}
+
+
+function calcRadiusLegend(myRadiusStops, title, color) {
+
+    // maximum legend item height
+    var maxLegendItemHeight = 2 * myRadiusStops[myRadiusStops.length - 1][1];
+
+    // create legend
+    var legend = document.createElement('div');
+    legend.className = 'legend vertical legend-variable-radius';
+
+    legend.id = 'legend-1';
+    document.body.appendChild(legend);
+
+    // add legend header and content elements
+    var mytitle = document.createElement('div'),
+        legendContent = document.createElement('ul');
+    legendHeader = document.createElement('div');
+    mytitle.textContent = title;
+    mytitle.className = 'legend-title'
+    legendHeader.className = 'legend-header'
+    legendContent.className = 'legend-content'
+    legendHeader.appendChild(mytitle);
+    legend.appendChild(legendHeader);
+    legend.appendChild(legendContent);
+
+    // calculate a legend entries on a Mapbox GL Style Spec property function stops array
+    for (p = 0; p < myRadiusStops.length; p++) {
+        if (!!document.getElementById('legend-radius-points-value-' + p)) {
+            //update the legend if it already exists
+            document.getElementById('legend-radius-points-value-' + p).textContent = myRadiusStops[p][0];
+            document.getElementById('legend-radius-points-id-' + p).style.backgroundColor = color;
+        }
+        else {
+            // create the legend if it doesn't yet exist
+            var item = document.createElement('li');
+            item.className = 'legend-item';
+            item.height = '' + maxLegendItemHeight + 'px';
+
+            var key = document.createElement('span');
+            key.className = 'legend-key circle';
+            key.id = 'legend-radius-points-id-' + p;
+            key.style.backgroundColor = color;   
+
+            key.style.width = '' + myRadiusStops[p][1] * 2 + 'px';
+            key.style.height = '' + myRadiusStops[p][1] * 2 + 'px';
+
+            keyVerticalMargin = (maxLegendItemHeight - myRadiusStops[p][1] * 2) * 0.5;
+            key.style.marginTop = '' + keyVerticalMargin + 'px';
+            key.style.marginBottom = '' + keyVerticalMargin + 'px';
+
+            var value = document.createElement('span');
+            value.className = 'legend-value';
+            value.id = 'legend-radius-points-value-' + p;
+
+            item.appendChild(key);
+            item.appendChild(value);
+            legendContent.appendChild(item);
+            
+            data = document.getElementById('legend-radius-points-value-' + p)
+
+            // round number values in legend if precision defined
+            if ((typeof(myRadiusStops[p][0]) == 'number') && (typeof(null) == 'number')) {
+                data.textContent = myRadiusStops[p][0].toFixed(null);
+            }
+            else {
+                data.textContent = myRadiusStops[p][0];
+            }
+        }
+    }
+
+    // add class for styling bordered legend keys
+    if (true) {
+        var keys = document.getElementsByClassName('legend-key');
+        for (var i=0; i < keys.length; i++) {
+            if (keys[i]) {
+                keys[i].classList.add('bordered');
+            }
+        }
+    }
+
+    // update right-margin for compact Mapbox attribution based on calculated legend width
+    updateAttribMargin(legend);
+    updateLegendMargin(legend);
+
+}
+
+
+function updateAttribMargin(legend) {
+
+    // default margin is based on calculated legend width
+    var attribMargin = legend.offsetWidth + 15;
+    
+    // if horizontal legend layout (multiple legends are stacked vertically)
+    if ('vertical' === 'horizontal') {
+        document.getElementsByClassName('mapboxgl-ctrl-attrib')[0].style.marginRight = (attribMargin).toString() + 'px';
+    }
+    // vertical legend layout means multiple legends are side-by-side
+    else if ('vertical' === 'vertical') {
+        var currentMargin = Number(document.getElementsByClassName('mapboxgl-ctrl-attrib')[0].style.marginRight.replace('px', ''));
+        document.getElementsByClassName('mapboxgl-ctrl-attrib')[0].style.marginRight = (attribMargin + currentMargin).toString() + 'px';
+    }
+}
+
+
+function updateLegendMargin(legend) {
+
+    var verticalLegends = document.getElementsByClassName('legend vertical'),
+        horizontalLegends = document.getElementsByClassName('legend horizontal');
+
+    if (verticalLegends.length > 1) {
+        for (i = 1; i < verticalLegends.length; i++) {
+            verticalLegends[i].style.marginRight = (legend.offsetWidth - 5).toString() + 'px';
+            var legend = verticalLegends[i];
+        }
+    }
+    else if (horizontalLegends.length > 1) {
+        for (i = 1; i < horizontalLegends.length; i++) {
+            horizontalLegends[i].style.marginBottom = (legend.offsetHeight + 15).toString() + 'px';
+            var legend = horizontalLegends[i];
+        }
+    }
+}
+
+
+function generateInterpolateExpression(propertyValue, stops) {
+    var expression;
+    if (propertyValue == 'zoom') {
+        expression = ['interpolate', ['exponential', 1.2], ['zoom']]
+    }
+    else if (propertyValue == 'heatmap-density') {
+        expression = ['interpolate', ['linear'], ['heatmap-density']]
+    }
+    else {
+        expression = ['interpolate', ['linear'], ['get', propertyValue]]
+    }
+
+    for (var i=0; i<stops.length; i++) {
+        expression.push(stops[i][0], stops[i][1])
+    }
+    return expression
+}
+
+
+function generateMatchExpression(propertyValue, stops, defaultValue) {
+    var expression;
+    expression = ['match', ['get', propertyValue]]
+    for (var i=0; i<stops.length; i++) {
+        expression.push(stops[i][0], stops[i][1])
+    }
+    expression.push(defaultValue)
+    
+    return expression
+}
+
+
+function generatePropertyExpression(expressionType, propertyValue, stops, defaultValue) {
+    var expression;
+    if (expressionType == 'match') {
+        expression = generateMatchExpression(propertyValue, stops, defaultValue)
+    }
+    else if (propertyValue == 'identity') {
+        expression = ['get', propertyValue]
+    }
+    else {
+        expression = generateInterpolateExpression(propertyValue, stops)
+    }
+
+    return expression
+}
+
+</script>
+
+<!-- main map creation code, extended by mapboxgl/templates/clustered_circle.html -->
+<script type="text/javascript">
+
+    mapboxgl.accessToken = 'pk.eyJ1IjoiYmFuYWRvIiwiYSI6ImNrbDV6OXVxNDAya3MydnF1NzNvOWY3ZWYifQ.qQwNYb9iAgc9UsOoOcP4Bg';
+
+    var transformRequest = function(url, resourceType) {
+        const isMapboxRequest = url.slice(8, 22) === 'api.mapbox.com' ||
+          url.slice(10, 26) === 'tiles.mapbox.com';
+      
+        return {
+          url: isMapboxRequest ? url.replace('?', '?pluginName=PythonMapboxgl&') : url
+        }
+    };
+
+    var map = new mapboxgl.Map({
+        container: 'map',
+        attributionControl: false,
+        style: 'mapbox://styles/mapbox/light-v10?optimize=true',
+        center: [126.981497, 37.518623],
+        zoom: 10.4,
+        pitch: 0,
+        bearing: 0,
+        scrollZoom: true,
+        touchZoom: true,
+        doubleClickZoom: true,
+        boxZoom: true,
+        preserveDrawingBuffer: false,
+        transformRequest: transformRequest
+    });
+
+    
+    
+        map.addControl(new mapboxgl.AttributionControl({ compact: true }));
+
+    
+
+    
+
+        map.addControl(new mapboxgl.NavigationControl());
+
+    
+
+    
+    
+    
+        calcColorLegend([[5, 'rgb(140,81,10)'], [10, 'rgb(216,179,101)'], [15, 'rgb(246,232,195)'], [20, 'rgb(199,234,229)'], [25, 'rgb(90,180,172)'], [30, 'rgb(1,102,94)']], "Point Density");
+    
+
+
+
+    
+        
+        
+
+    
+
+    
+
+    map.on('style.load', function() {
+        
+        
+
+        map.addSource("data", {
+            "type": "geojson",
+            "data": {"type": "FeatureCollection", "features": [{"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.91739, 37.62359]}, "properties": {"GUNAME": "은평구", "M_NAME": "갈현시장", "M_ADDR": "갈현동 424-16"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.02064, 37.51875]}, "properties": {"GUNAME": "동작구", "M_NAME": "강남시장", "M_ADDR": "상도동 488"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.95349, 37.49675]}, "properties": {"GUNAME": "강남구", "M_NAME": "강남시장", "M_ADDR": "신사동510-11"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.02803, 37.49859]}, "properties": {"GUNAME": "강남구", "M_NAME": "강남역 지하도상가", "M_ADDR": "역삼동821-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.98606, 37.50048]}, "properties": {"GUNAME": "서초구", "M_NAME": "강남터미널지하도상점가1구역", "M_ADDR": "서초구 반포동 163"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.98606, 37.50048]}, "properties": {"GUNAME": "서초구", "M_NAME": "강남터미널지하도상점가2구역", "M_ADDR": "서초구 반포동 163-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.98606, 37.50048]}, "properties": {"GUNAME": "서초구", "M_NAME": "강남터미널지하도상점가3구역", "M_ADDR": "서초구 반포동 225"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.02705, 37.64057]}, "properties": {"GUNAME": "강북구", "M_NAME": "강북종합골목시장", "M_ADDR": "수유3동 177번지 일대"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.02563, 37.64204]}, "properties": {"GUNAME": "강북구", "M_NAME": "강북종합시장", "M_ADDR": "수유3동 179-5"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.85388, 37.49166]}, "properties": {"GUNAME": "구로구", "M_NAME": "개봉중앙시장", "M_ADDR": "개봉2동 324-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.85117, 37.50202]}, "properties": {"GUNAME": "구로구", "M_NAME": "개봉프라자", "M_ADDR": "고척동 269-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.06879, 37.48925]}, "properties": {"GUNAME": "강남구", "M_NAME": "개포2동 중심상가", "M_ADDR": "개포동 186-17"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.04034, 37.57929]}, "properties": {"GUNAME": "동대문구", "M_NAME": "경동광성상가", "M_ADDR": "제기동 849"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.03954, 37.57891]}, "properties": {"GUNAME": "동대문구", "M_NAME": "경동시장", "M_ADDR": "제기동 1018"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.84209, 37.52492]}, "properties": {"GUNAME": "양천구", "M_NAME": "경창시장", "M_ADDR": "양천구 신월동 447-8"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.16892, 37.55759]}, "properties": {"GUNAME": "강동구", "M_NAME": "고덕전통시장", "M_ADDR": "고덕동 210-3 "}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.00349, 37.50431]}, "properties": {"GUNAME": "서초구", "M_NAME": "고속터미널 지하철역 상점가 ", "M_ADDR": "반포동 19-3,4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.85051, 37.5024]}, "properties": {"GUNAME": "구로구", "M_NAME": "고척근린시장", "M_ADDR": "고척동 257-12"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.86278, 37.50379]}, "properties": {"GUNAME": "구로구", "M_NAME": "고척프라자", "M_ADDR": "고척동 50-48"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.95335, 37.5448]}, "properties": {"GUNAME": "마포구", "M_NAME": "공덕시장", "M_ADDR": "마포구 공덕동 256-10"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.07724, 37.62289]}, "properties": {"GUNAME": "노원구", "M_NAME": "공릉동 도깨비시장", "M_ADDR": "공릉동 561-35"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.07463, 37.48935]}, "properties": {"GUNAME": "강남구", "M_NAME": "공무원연금매장 상록스토아 개포점", "M_ADDR": "강남구 일원동 613"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.8091, 37.563]}, "properties": {"GUNAME": "강서구", "M_NAME": "공항시장", "M_ADDR": "방화동 620-17"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.91695, 37.48629]}, "properties": {"GUNAME": "관악구", "M_NAME": "관악신사시장(신림4동)", "M_ADDR": "신사동 494-7"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.92793, 37.48163]}, "properties": {"GUNAME": "관악구", "M_NAME": "관악종합시장", "M_ADDR": "신원동 1602-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.08111, 37.56358]}, "properties": {"GUNAME": "광진구", "M_NAME": "광성시장", "M_ADDR": "광진구 중곡동 229-15"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.99967, 37.56938]}, "properties": {"GUNAME": "종로구", "M_NAME": "광장골목시장", "M_ADDR": "예지동 293-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.99888, 37.57002]}, "properties": {"GUNAME": "종로구", "M_NAME": "광장시장", "M_ADDR": "예지동 6-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.01189, 37.56863]}, "properties": {"GUNAME": "중구", "M_NAME": "광희시장", "M_ADDR": "신당동 777"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.88526, 37.48853]}, "properties": {"GUNAME": "구로구", "M_NAME": "구로시장", "M_ADDR": "구로동  736-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.08851, 37.54564]}, "properties": {"GUNAME": "광진구", "M_NAME": "구의시장", "M_ADDR": "광진구 구의동 66-25"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.13178, 37.54227]}, "properties": {"GUNAME": "강동구", "M_NAME": "굽은다리골목시장", "M_ADDR": "천호동 397-99 일대"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.02269, 37.54843]}, "properties": {"GUNAME": "성동구", "M_NAME": "금남시장", "M_ADDR": "금호동3가 326"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.97225, 37.57651]}, "properties": {"GUNAME": "종로구", "M_NAME": "금천교시장", "M_ADDR": "종로구 내자동 1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.1428, 37.53708]}, "properties": {"GUNAME": "강동구", "M_NAME": "길동골목시장", "M_ADDR": "길동 397-3 일대"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.02173, 37.60271]}, "properties": {"GUNAME": "성북구", "M_NAME": "길음시장", "M_ADDR": "길음동 535-8, 540-2"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.84787, 37.53153]}, "properties": {"GUNAME": "강서구", "M_NAME": "까치산시장", "M_ADDR": "강서구 화곡8동 342-16"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.04137, 37.58648]}, "properties": {"GUNAME": "동대문구", "M_NAME": "깡통시장(제기상가번영회)", "M_ADDR": "제기동 289 ~ 740"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.95567, 37.47944]}, "properties": {"GUNAME": "관악구", "M_NAME": "낙성대 시장(봉천7동)", "M_ADDR": "낙성대동 1612일대"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.98777, 37.57256]}, "properties": {"GUNAME": "종로구", "M_NAME": "낙원상가", "M_ADDR": "낙원동 284-6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.98777, 37.57256]}, "properties": {"GUNAME": "종로구", "M_NAME": "낙원지하시장(대일상가)", "M_ADDR": "낙원동 284-6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.88505, 37.49048]}, "properties": {"GUNAME": "구로구", "M_NAME": "남구로시장(구 구로자율시장)", "M_ADDR": "구로동 730-27"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.97718, 37.56038]}, "properties": {"GUNAME": "중구", "M_NAME": "남대문로 지하상가", "M_ADDR": "남대문로4가 18-2"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.97793, 37.55937]}, "properties": {"GUNAME": "중구", "M_NAME": "남대문시장", "M_ADDR": "남창동 49"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.90038, 37.47368]}, "properties": {"GUNAME": "금천구", "M_NAME": "남문시장", "M_ADDR": "독산동 984-10"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.86065, 37.53314]}, "properties": {"GUNAME": "강서구", "M_NAME": "남부골목시장", "M_ADDR": "강서구 화곡동 802-19"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.98487, 37.49492]}, "properties": {"GUNAME": "서초구", "M_NAME": "남부종합시장", "M_ADDR": "방배본동 767-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.85899, 37.53307]}, "properties": {"GUNAME": "강서구", "M_NAME": "남부화곡시장", "M_ADDR": "화곡동 830-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.90726, 37.5204]}, "properties": {"GUNAME": "영등포구", "M_NAME": "남서울상가", "M_ADDR": "영등포동5가 16,17"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.01088, 37.56917]}, "properties": {"GUNAME": "중구", "M_NAME": "남평화시장", "M_ADDR": "신당동 772"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.06459, 37.53661]}, "properties": {"GUNAME": "광진구", "M_NAME": "노룬산골목시장", "M_ADDR": "자양동 44-12"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.06481, 37.53651]}, "properties": {"GUNAME": "광진구", "M_NAME": "노룬산시장", "M_ADDR": "광진구 자양동 44-2"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.93048, 37.60057]}, "properties": {"GUNAME": "은평구", "M_NAME": "녹번시장", "M_ADDR": "응암동 74-7"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.03474, 37.51]}, "properties": {"GUNAME": "강남구", "M_NAME": "논현종합시장", "M_ADDR": "논현동227-4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.06664, 37.53516]}, "properties": {"GUNAME": "광진구", "M_NAME": "능동로골목시장", "M_ADDR": "자양동 553-219"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.05803, 37.57318]}, "properties": {"GUNAME": "동대문구", "M_NAME": "답십리시장", "M_ADDR": "답십리동 66-39"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.05932, 37.56674]}, "properties": {"GUNAME": "동대문구", "M_NAME": "답십리현대시장", "M_ADDR": "답십리동 14-11"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.9175, 37.5879]}, "properties": {"GUNAME": "은평구", "M_NAME": "대림골목시장", "M_ADDR": "응암동 602   주변골목"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.91761, 37.58676]}, "properties": {"GUNAME": "은평구", "M_NAME": "대림시장", "M_ADDR": "응암동 754-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.90766, 37.49137]}, "properties": {"GUNAME": "영등포구", "M_NAME": "대림시장", "M_ADDR": "대림동963-5"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.89827, 37.49206]}, "properties": {"GUNAME": "영등포구", "M_NAME": "대림중앙시장", "M_ADDR": "대림2동 1075"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.90178, 37.45426]}, "properties": {"GUNAME": "금천구", "M_NAME": "대명시장", "M_ADDR": "시흥동 884-5"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.90185, 37.45404]}, "properties": {"GUNAME": "금천구", "M_NAME": "대명시장 및 주변상점가", "M_ADDR": "시흥동 885"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.91766, 37.51106]}, "properties": {"GUNAME": "영등포구", "M_NAME": "대신시장", "M_ADDR": "신길동 116-15"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.83647, 37.54443]}, "properties": {"GUNAME": "강서구", "M_NAME": "대원종합시장", "M_ADDR": "화곡동 1023"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.92635, 37.60906]}, "properties": {"GUNAME": "은평구", "M_NAME": "대조시장", "M_ADDR": "대조동 26-14 주변골목"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.89834, 37.50996]}, "properties": {"GUNAME": "영등포구", "M_NAME": "도림시장", "M_ADDR": "도림동 176"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.03433, 37.56384]}, "properties": {"GUNAME": "성동구", "M_NAME": "도선동상점가", "M_ADDR": "도선동 164"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.94912, 37.54087]}, "properties": {"GUNAME": "마포구", "M_NAME": "도화동 상점가", "M_ADDR": "도화동 179-5"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.01591, 37.59144]}, "properties": {"GUNAME": "성북구", "M_NAME": "돈암제일시장", "M_ADDR": "동소문동5가 59-21 일대"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.90563, 37.52058]}, "properties": {"GUNAME": "영등포구", "M_NAME": "동남상가", "M_ADDR": "영등포동5가24"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.01442, 37.57121]}, "properties": {"GUNAME": "종로구", "M_NAME": "동대문문구완구종합시장", "M_ADDR": "창신동 390-29"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.01061, 37.57005]}, "properties": {"GUNAME": "종로구", "M_NAME": "동대문상가A동", "M_ADDR": "창신동 436-79"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.01192, 37.57005]}, "properties": {"GUNAME": "종로구", "M_NAME": "동대문상가B동", "M_ADDR": "창신동 436-78"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.01333, 37.57008]}, "properties": {"GUNAME": "종로구", "M_NAME": "동대문상가C동", "M_ADDR": "창신동 436-65"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.00817, 37.57016]}, "properties": {"GUNAME": "종로구", "M_NAME": "동대문종합시장", "M_ADDR": "종로6가 289-42"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.00732, 37.57064]}, "properties": {"GUNAME": "종로구", "M_NAME": "동대문종합시장D동상가", "M_ADDR": "종로6가 270-3"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.00498, 37.57195]}, "properties": {"GUNAME": "종로구", "M_NAME": "동대문지하쇼핑센터", "M_ADDR": "종로구 종로6가 382-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.01127, 37.57059]}, "properties": {"GUNAME": "종로구", "M_NAME": "동문시장", "M_ADDR": "창신동 437"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.07629, 37.59244]}, "properties": {"GUNAME": "중랑구", "M_NAME": "동부골목시장", "M_ADDR": "상봉동 130-161"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.05228, 37.56761]}, "properties": {"GUNAME": "동대문구", "M_NAME": "동부시장", "M_ADDR": "답십리동 495-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.04287, 37.57736]}, "properties": {"GUNAME": "동대문구", "M_NAME": "동부청과시장", "M_ADDR": "용두동 39-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.01876, 37.62022]}, "properties": {"GUNAME": "강북구", "M_NAME": "동북시장", "M_ADDR": "미아1동 701-3"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.04148, 37.57977]}, "properties": {"GUNAME": "동대문구", "M_NAME": "동서시장", "M_ADDR": "제기동 650"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.12819, 37.54216]}, "properties": {"GUNAME": "강동구", "M_NAME": "동서울시장", "M_ADDR": "천호동 422-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.09729, 37.60807]}, "properties": {"GUNAME": "중랑구", "M_NAME": "동성타워프라자", "M_ADDR": "신내동 786"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.01048, 37.59726]}, "properties": {"GUNAME": "성북구", "M_NAME": "동소문 스카이상가", "M_ADDR": "돈암동 606일대"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.09138, 37.58971]}, "properties": {"GUNAME": "중랑구", "M_NAME": "동원골목시장", "M_ADDR": "면목동 103-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.08985, 37.58982]}, "properties": {"GUNAME": "중랑구", "M_NAME": "동원시장", "M_ADDR": "면목동 101-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.9267, 37.56237]}, "properties": {"GUNAME": "마포구", "M_NAME": "동진시장", "M_ADDR": "연남동 227-15,38"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.01391, 37.56944]}, "properties": {"GUNAME": "중구", "M_NAME": "동평화시장", "M_ADDR": "신당동 217-92"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.0071, 37.56936]}, "properties": {"GUNAME": "중구", "M_NAME": "동화시장", "M_ADDR": "을지로6가 17-145"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.89805, 37.49528]}, "properties": {"GUNAME": "영등포구", "M_NAME": "두암시장", "M_ADDR": "대림3동717"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.13511, 37.52746]}, "properties": {"GUNAME": "강동구", "M_NAME": "둔촌역전통시장", "M_ADDR": "성내동 428-9 일대"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.86015, 37.55663]}, "properties": {"GUNAME": "강서구", "M_NAME": "등마루시장", "M_ADDR": "등촌동 637-10"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.05447, 37.53882]}, "properties": {"GUNAME": "성동구", "M_NAME": "뚝도시장", "M_ADDR": "성수동2가 335"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.12664, 37.53832]}, "properties": {"GUNAME": "강동구", "M_NAME": "로데오거리상점가", "M_ADDR": "천호동 454-50 일대"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.90581, 37.52032]}, "properties": {"GUNAME": "영등포구", "M_NAME": "로타리상가", "M_ADDR": "영등포동5가 20"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.03838, 37.56973]}, "properties": {"GUNAME": "성동구", "M_NAME": "마장축산물시장", "M_ADDR": "마장동 510-3"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.15054, 37.49826]}, "properties": {"GUNAME": "송파구", "M_NAME": "마천시장", "M_ADDR": "마천동 140-2"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.15001, 37.49738]}, "properties": {"GUNAME": "송파구", "M_NAME": "마천중앙시장", "M_ADDR": "마천동 134-14"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.89793, 37.56513]}, "properties": {"GUNAME": "마포구", "M_NAME": "마포농수산물시장", "M_ADDR": "성산2동 533-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.95384, 37.54481]}, "properties": {"GUNAME": "마포구", "M_NAME": "마포시장", "M_ADDR": "마포구 공덕동 256-30"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.9636, 37.55124]}, "properties": {"GUNAME": "용산구", "M_NAME": "만리시장", "M_ADDR": "서계동 260-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.90448, 37.55767]}, "properties": {"GUNAME": "마포구", "M_NAME": "망원동월드컵시장", "M_ADDR": "망원2동 423일대"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.90573, 37.55585]}, "properties": {"GUNAME": "마포구", "M_NAME": "망원시장", "M_ADDR": "망원1동 411일대"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.08148, 37.57126]}, "properties": {"GUNAME": "광진구", "M_NAME": "면곡골목시장", "M_ADDR": "중곡동 566-3"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.0846, 37.57727]}, "properties": {"GUNAME": "중랑구", "M_NAME": "면목골목시장", "M_ADDR": "면목동 352-9"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.08629, 37.57959]}, "properties": {"GUNAME": "중랑구", "M_NAME": "면목시장", "M_ADDR": "면목동 650"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.98168, 37.56349]}, "properties": {"GUNAME": "중구", "M_NAME": "명동 지하도상가", "M_ADDR": "남대문로2가 123"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.98559, 37.56107]}, "properties": {"GUNAME": "중구", "M_NAME": "명동역지하도쇼핑센터", "M_ADDR": "중구 충무로2가 65-12"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.14488, 37.5495]}, "properties": {"GUNAME": "강동구", "M_NAME": "명일골목시장", "M_ADDR": "명일동 333-2 일대"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.91582, 37.57052]}, "properties": {"GUNAME": "서대문구", "M_NAME": "모래내시장", "M_ADDR": "남가좌동 290-2"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.87394, 37.54599]}, "properties": {"GUNAME": "양천구", "M_NAME": "목2동시장", "M_ADDR": "목2동 526"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.86681, 37.54826]}, "properties": {"GUNAME": "양천구", "M_NAME": "목3동시장", "M_ADDR": "목3동 610-19"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.86661, 37.53799]}, "properties": {"GUNAME": "양천구", "M_NAME": "목4동시장", "M_ADDR": "목4동 738-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.87065, 37.54657]}, "properties": {"GUNAME": "양천구", "M_NAME": "목동제일시장", "M_ADDR": "목2동 503-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.12387, 37.48914]}, "properties": {"GUNAME": "송파구", "M_NAME": "문정동 로데오거리 상점가", "M_ADDR": "문정동 41-5"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.91592, 37.47431]}, "properties": {"GUNAME": "관악구", "M_NAME": "미성동 도깨비시장", "M_ADDR": "미성동 1563-85"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.90468, 37.44015]}, "properties": {"GUNAME": "금천구", "M_NAME": "박미시장", "M_ADDR": "시흥동 956"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.03586, 37.60836]}, "properties": {"GUNAME": "성북구", "M_NAME": "밤나무골시장", "M_ADDR": "하월곡동 76-8 일대"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.99971, 37.56745]}, "properties": {"GUNAME": "중구", "M_NAME": "방산시장", "M_ADDR": "주교동 251-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.0008, 37.56867]}, "properties": {"GUNAME": "중구", "M_NAME": "방산종합시장", "M_ADDR": "주교동 19-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.81233, 37.57137]}, "properties": {"GUNAME": "강서구", "M_NAME": "방신재래시장", "M_ADDR": "강서구 방화동 567-23 "}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.11752, 37.51036]}, "properties": {"GUNAME": "송파구", "M_NAME": "방이시장", "M_ADDR": "방이동 137-8"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.0311, 37.61325]}, "properties": {"GUNAME": "강북구", "M_NAME": "방천골목시장", "M_ADDR": "미아4동 55번지 일대"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.03529, 37.66576]}, "properties": {"GUNAME": "도봉구", "M_NAME": "방학동도깨비시장", "M_ADDR": "방학동 633번지 45"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.92308, 37.57699]}, "properties": {"GUNAME": "서대문구", "M_NAME": "백련시장", "M_ADDR": "남가좌동 345-4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.03094, 37.63566]}, "properties": {"GUNAME": "강북구", "M_NAME": "번동북부골목시장", "M_ADDR": "번1동 411번지 일대"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.03034, 37.63627]}, "properties": {"GUNAME": "강북구", "M_NAME": "번동북부시장", "M_ADDR": "번1동 413-3"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.04794, 37.62124]}, "properties": {"GUNAME": "성북구", "M_NAME": "번동시장", "M_ADDR": "장위동 301"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.00026, 37.5272]}, "properties": {"GUNAME": "용산구", "M_NAME": "보광시장", "M_ADDR": "보광동 260-8"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.0205, 37.58561]}, "properties": {"GUNAME": "성북구", "M_NAME": "보문골목시장", "M_ADDR": "보문동1가204-20"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.95186, 37.51217]}, "properties": {"GUNAME": "동작구", "M_NAME": "본동인정시장", "M_ADDR": "본동 187-1외 66필지"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.93842, 37.4856]}, "properties": {"GUNAME": "관악구", "M_NAME": "봉일시장", "M_ADDR": "은천동 951-25"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.95883, 37.48866]}, "properties": {"GUNAME": "관악구", "M_NAME": "봉천신시장", "M_ADDR": "청림동 10-5"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.94446, 37.48127]}, "properties": {"GUNAME": "관악구", "M_NAME": "봉천제일종합시장", "M_ADDR": "청룡동 921-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.95417, 37.4839]}, "properties": {"GUNAME": "관악구", "M_NAME": "봉천중앙시장", "M_ADDR": "중앙동 32-2"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.94654, 37.4866]}, "properties": {"GUNAME": "관악구", "M_NAME": "봉천현대시장", "M_ADDR": "은천동 502-4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.08937, 37.58111]}, "properties": {"GUNAME": "중랑구", "M_NAME": "사가정골목시장", "M_ADDR": "면목동 472-45"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.97498, 37.48284]}, "properties": {"GUNAME": "동작구", "M_NAME": "사당시장", "M_ADDR": "사당4동 318-8"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.91077, 37.50613]}, "properties": {"GUNAME": "영등포구", "M_NAME": "사러가시장", "M_ADDR": "신길동254-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.90585, 37.5203]}, "properties": {"GUNAME": "영등포구", "M_NAME": "삼구시장", "M_ADDR": "영등포동5가19"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.00846, 37.58821]}, "properties": {"GUNAME": "성북구", "M_NAME": "삼선골목시장", "M_ADDR": "동소문동2가146"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.93359, 37.4719]}, "properties": {"GUNAME": "관악구", "M_NAME": "삼성동 시장(신림6동)", "M_ADDR": "삼성동 808-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.97896, 37.56014]}, "properties": {"GUNAME": "중구", "M_NAME": "삼익패션타운", "M_ADDR": "남창동 5"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.07781, 37.66494]}, "properties": {"GUNAME": "노원구", "M_NAME": "상계시장", "M_ADDR": "상계동 95-3"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.06987, 37.65982]}, "properties": {"GUNAME": "노원구", "M_NAME": "상계중앙시장", "M_ADDR": "상계동 389-641 외 49필지"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.08383, 37.50891]}, "properties": {"GUNAME": "송파구", "M_NAME": "새마을시장", "M_ADDR": "잠실동 205-15"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.05265, 37.60819]}, "properties": {"GUNAME": "성북구", "M_NAME": "새석관시장", "M_ADDR": "석관동 338-18"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.92163, 37.55343]}, "properties": {"GUNAME": "마포구", "M_NAME": "서교시장", "M_ADDR": "서교동 357-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.03703, 37.57901]}, "properties": {"GUNAME": "동대문구", "M_NAME": "서울약령시장", "M_ADDR": "제기동 1126-5"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.01977, 37.56676]}, "properties": {"GUNAME": "중구", "M_NAME": "서울중앙시장", "M_ADDR": "황학동 409"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.95567, 37.47944]}, "properties": {"GUNAME": "관악구", "M_NAME": "서원동상점가", "M_ADDR": "낙성대동 1612일대"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.91578, 37.57123]}, "properties": {"GUNAME": "서대문구", "M_NAME": "서중시장", "M_ADDR": "남가좌동 286-35"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.06029, 37.60916]}, "properties": {"GUNAME": "성북구", "M_NAME": "석관시장", "M_ADDR": "석관동 270-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.06141, 37.60953]}, "properties": {"GUNAME": "성북구", "M_NAME": "석관황금시장", "M_ADDR": "석관동 279-35 일대"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.10778, 37.50055]}, "properties": {"GUNAME": "송파구", "M_NAME": "석촌시장", "M_ADDR": "석촌동 275-5"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.12781, 37.53399]}, "properties": {"GUNAME": "강동구", "M_NAME": "성내골목시장", "M_ADDR": "성내동 144-16 일대"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.93174, 37.49996]}, "properties": {"GUNAME": "동작구", "M_NAME": "성대시장", "M_ADDR": "상도동 324-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.05244, 37.5636]}, "properties": {"GUNAME": "성동구", "M_NAME": "성동용답상가시장", "M_ADDR": "용답동 49-5"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.99521, 37.56926]}, "properties": {"GUNAME": "종로구", "M_NAME": "세운상가가동", "M_ADDR": "장사동 116-4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.98, 37.56439]}, "properties": {"GUNAME": "중구", "M_NAME": "소공지하도상가", "M_ADDR": "소공동 87"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.02443, 37.63177]}, "properties": {"GUNAME": "강북구", "M_NAME": "솔샘시장(미아6,7동골목시장)", "M_ADDR": "서울 강북구 미아동"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.83572, 37.54873]}, "properties": {"GUNAME": "강서구", "M_NAME": "송화골목시장", "M_ADDR": "강서구 내발산동 723-10"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.01607, 37.63618]}, "properties": {"GUNAME": "강북구", "M_NAME": "수유북부시장", "M_ADDR": "강북구 수유동 405-5"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.02293, 37.63078]}, "properties": {"GUNAME": "강북구", "M_NAME": "수유시장", "M_ADDR": "수유1동 54-5"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.02172, 37.63357]}, "properties": {"GUNAME": "강북구", "M_NAME": "수유재래시장", "M_ADDR": "수유1동 50,53,54번지일대"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.02181, 37.63164]}, "properties": {"GUNAME": "강북구", "M_NAME": "수유전통시장(구)수유골목시장", "M_ADDR": "수유1동 53,54번지일대"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.02106, 37.64141]}, "properties": {"GUNAME": "강북구", "M_NAME": "수유중앙골목시장", "M_ADDR": "수유3동 38번지 일대"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.02129, 37.64033]}, "properties": {"GUNAME": "강북구", "M_NAME": "수유중앙시장", "M_ADDR": "수유3동 32-2"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.02343, 37.6317]}, "properties": {"GUNAME": "강북구", "M_NAME": "수유프라자", "M_ADDR": "수유1동 63"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.89517, 37.58287]}, "properties": {"GUNAME": "은평구", "M_NAME": "수일시장", "M_ADDR": "수색동 368-24"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.9762, 37.5594]}, "properties": {"GUNAME": "중구", "M_NAME": "숭례문상가", "M_ADDR": "남창동 51-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.02943, 37.6132]}, "properties": {"GUNAME": "강북구", "M_NAME": "숭인시장", "M_ADDR": "미아5동 60-5"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.97966, 37.56621]}, "properties": {"GUNAME": "중구", "M_NAME": "시청광장 지하쇼핑센터", "M_ADDR": "중구 을지로1가 56"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.84313, 37.51835]}, "properties": {"GUNAME": "양천구", "M_NAME": "신곡종합시장", "M_ADDR": "신월6동 575-17"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.91059, 37.51115]}, "properties": {"GUNAME": "영등포구", "M_NAME": "신길시장", "M_ADDR": "신길2동 221-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.9393, 37.50827]}, "properties": {"GUNAME": "동작구", "M_NAME": "신노량진시장", "M_ADDR": "노량진동 307-9"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.04119, 37.67025]}, "properties": {"GUNAME": "도봉구", "M_NAME": "신도봉시장", "M_ADDR": "도봉동611"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.90954, 37.50633]}, "properties": {"GUNAME": "영등포구", "M_NAME": "신동시장", "M_ADDR": "신길동259"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.01877, 37.52052]}, "properties": {"GUNAME": "관악구", "M_NAME": "신림종합시장", "M_ADDR": "신사동 505-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.91147, 37.48315]}, "properties": {"GUNAME": "관악구", "M_NAME": "신림중앙시장", "M_ADDR": "조원동 541"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.93235, 37.4749]}, "properties": {"GUNAME": "관악구", "M_NAME": "신림현대상가", "M_ADDR": "서림동 1694"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.02837, 37.53227]}, "properties": {"GUNAME": "강남구", "M_NAME": "신사상가", "M_ADDR": "압구정동454"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.0203, 37.57265]}, "properties": {"GUNAME": "종로구", "M_NAME": "신설종합시장", "M_ADDR": "숭인동 206-9"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.08845, 37.55797]}, "properties": {"GUNAME": "광진구", "M_NAME": "신성시장", "M_ADDR": "광진구 중곡동 79-13"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.93555, 37.54542]}, "properties": {"GUNAME": "마포구", "M_NAME": "신수시장", "M_ADDR": "신수동 288-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.93219, 37.47088]}, "properties": {"GUNAME": "관악구", "M_NAME": "신신림시장", "M_ADDR": "삼성동 390-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.09467, 37.6064]}, "properties": {"GUNAME": "중랑구", "M_NAME": "신아타운", "M_ADDR": "신내동 666"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.9102, 37.50652]}, "properties": {"GUNAME": "영등포구", "M_NAME": "신영사러가시장", "M_ADDR": "신길동255-9"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.8354, 37.53322]}, "properties": {"GUNAME": "양천구", "M_NAME": "신영시장", "M_ADDR": "신월1동  113-33"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.92636, 37.48316]}, "properties": {"GUNAME": "관악구", "M_NAME": "신원시장(신림1동)", "M_ADDR": "관악구 신원동 1587"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.82513, 37.53421]}, "properties": {"GUNAME": "양천구", "M_NAME": "신월3동 골목시장", "M_ADDR": "신월3동 154"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.84314, 37.51761]}, "properties": {"GUNAME": "양천구", "M_NAME": "신월6동 골목시장", "M_ADDR": "신월6동 574-15"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.83292, 37.5228]}, "properties": {"GUNAME": "양천구", "M_NAME": "신월7동 골목시장", "M_ADDR": "신월7동 921"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.84234, 37.52805]}, "properties": {"GUNAME": "강서구", "M_NAME": "신월중앙시장", "M_ADDR": "화곡동 929-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.91896, 37.59372]}, "properties": {"GUNAME": "은평구", "M_NAME": "신응암시장", "M_ADDR": "응암동427번지"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.85382, 37.5206]}, "properties": {"GUNAME": "양천구", "M_NAME": "신정1동 골목시장", "M_ADDR": "신정1동 1029"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.87664, 37.52098]}, "properties": {"GUNAME": "양천구", "M_NAME": "신정2동 골목시장", "M_ADDR": "신정2동 127-19"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.85268, 37.51845]}, "properties": {"GUNAME": "양천구", "M_NAME": "신정3동 골목시장", "M_ADDR": "신정3동 1181-16"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.85366, 37.52081]}, "properties": {"GUNAME": "양천구", "M_NAME": "신정제일시장", "M_ADDR": "신정1동 1030-6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.99946, 37.56556]}, "properties": {"GUNAME": "중구", "M_NAME": "신중부시장", "M_ADDR": "오장동 44-12"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.01155, 37.56942]}, "properties": {"GUNAME": "중구", "M_NAME": "신평화패션타운", "M_ADDR": "신당동 217"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.98504, 37.54526]}, "properties": {"GUNAME": "용산구", "M_NAME": "신흥시장", "M_ADDR": "용산동2가 1-480"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.03295, 37.64835]}, "properties": {"GUNAME": "도봉구", "M_NAME": "쌍문역골목시장", "M_ADDR": "쌍문동 94-29"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.94158, 37.47859]}, "properties": {"GUNAME": "관악구", "M_NAME": "쑥고개 시장(봉천8동)", "M_ADDR": "청룡동 1545 일대"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.01281, 37.60263]}, "properties": {"GUNAME": "성북구", "M_NAME": "아리랑시장", "M_ADDR": "정릉동966-56"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.95548, 37.55674]}, "properties": {"GUNAME": "마포구", "M_NAME": "아현골목시장", "M_ADDR": "아현동 327일대"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.12877, 37.55085]}, "properties": {"GUNAME": "강동구", "M_NAME": "암사종합시장", "M_ADDR": "암사동 501-17 일대"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.01084, 37.55331]}, "properties": {"GUNAME": "중구", "M_NAME": "약수시장", "M_ADDR": "신당3동 372-40"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.89046, 37.52321]}, "properties": {"GUNAME": "영등포구", "M_NAME": "양남시장", "M_ADDR": "양평동1가 31"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.03795, 37.48436]}, "properties": {"GUNAME": "서초구", "M_NAME": "양재시장", "M_ADDR": "양재1동 1-7,8-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.1368, 37.55563]}, "properties": {"GUNAME": "강동구", "M_NAME": "양지골목시장", "M_ADDR": "암사동 450-5 일대"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.91761, 37.58676]}, "properties": {"GUNAME": "은평구", "M_NAME": "양지시장", "M_ADDR": "응암동 754-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.13657, 37.55563]}, "properties": {"GUNAME": "강동구", "M_NAME": "양지종합시장", "M_ADDR": "강동구 암사3동 450-3"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.89752, 37.53699]}, "properties": {"GUNAME": "영등포구", "M_NAME": "양평시장", "M_ADDR": "영등포구 양평동4가 161-180"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.01195, 37.56812]}, "properties": {"GUNAME": "중구", "M_NAME": "에리어식스", "M_ADDR": "신당동 776"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.0391, 37.49287]}, "properties": {"GUNAME": "강남구", "M_NAME": "역삼종합시장", "M_ADDR": "역삼동796-22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.91616, 37.61328]}, "properties": {"GUNAME": "은평구", "M_NAME": "역촌중앙시장", "M_ADDR": "갈현동 467-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.92195, 37.61943]}, "properties": {"GUNAME": "은평구", "M_NAME": "연서시장", "M_ADDR": "불광동 310-131"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.91907, 37.62252]}, "properties": {"GUNAME": "은평구", "M_NAME": "연신내상점가", "M_ADDR": "갈현동 393-15 일대"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.92962, 37.56711]}, "properties": {"GUNAME": "서대문구", "M_NAME": "연희사러가", "M_ADDR": "연희동 131-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.94684, 37.55059]}, "properties": {"GUNAME": "마포구", "M_NAME": "염리시장", "M_ADDR": "염리동 36-249"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.94041, 37.50438]}, "properties": {"GUNAME": "동작구", "M_NAME": "영도시장", "M_ADDR": "상도동176"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.06332, 37.53798]}, "properties": {"GUNAME": "광진구", "M_NAME": "영동교골목시장", "M_ADDR": "자양동 246-111"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.02365, 37.50993]}, "properties": {"GUNAME": "강남구", "M_NAME": "영동전통시장", "M_ADDR": "논현동140외 44필지"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.88625, 37.52337]}, "properties": {"GUNAME": "영등포구", "M_NAME": "영등포기계상가", "M_ADDR": "양평동1가 247"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.9082, 37.518]}, "properties": {"GUNAME": "영등포구", "M_NAME": "영등포로타리지하도상점가", "M_ADDR": "영등포구 영등포동3가 441"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.90959, 37.5212]}, "properties": {"GUNAME": "영등포구", "M_NAME": "영등포시장기계공구상가", "M_ADDR": "영등포동2가 234"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.90581, 37.52032]}, "properties": {"GUNAME": "영등포구", "M_NAME": "영등포시장지하도상점가", "M_ADDR": "영등포동5가 20"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.90717, 37.51651]}, "properties": {"GUNAME": "영등포구", "M_NAME": "영등포역지하도상점가", "M_ADDR": "영등포동 618"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.89392, 37.5224]}, "properties": {"GUNAME": "영등포구", "M_NAME": "영등포유통상가", "M_ADDR": "당산동2가 30-2"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.90827, 37.51985]}, "properties": {"GUNAME": "영등포구", "M_NAME": "영등포전통시장", "M_ADDR": "영등포동 2가 335"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.90679, 37.51974]}, "properties": {"GUNAME": "영등포구", "M_NAME": "영신상가", "M_ADDR": "영등포동5가 18"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.90069, 37.51606]}, "properties": {"GUNAME": "영등포구", "M_NAME": "영일시장", "M_ADDR": "문래동3가 10"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.91265, 37.55345]}, "properties": {"GUNAME": "마포구", "M_NAME": "영진시장", "M_ADDR": "서교동 485-14"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.91586, 37.50035]}, "properties": {"GUNAME": "영등포구", "M_NAME": "영진시장A동", "M_ADDR": "신길동2365"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.9166, 37.50028]}, "properties": {"GUNAME": "영등포구", "M_NAME": "영진시장B동", "M_ADDR": "신길동 2363"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.96105, 37.57088]}, "properties": {"GUNAME": "서대문구", "M_NAME": "영천시장", "M_ADDR": "영천동 294외"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.84364, 37.49636]}, "properties": {"GUNAME": "구로구", "M_NAME": "오류시장", "M_ADDR": "오류동 38-7"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.94418, 37.53968]}, "properties": {"GUNAME": "마포구", "M_NAME": "용강동 상점가", "M_ADDR": "용강동 40-2"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.0295, 37.57839]}, "properties": {"GUNAME": "동대문구", "M_NAME": "용두시장", "M_ADDR": "용두동 231-5"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.96013, 37.53604]}, "properties": {"GUNAME": "용산구", "M_NAME": "용문시장", "M_ADDR": "용문동 42, 원효로3가 1번지"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.90532, 37.49631]}, "properties": {"GUNAME": "영등포구", "M_NAME": "우리시장", "M_ADDR": "대림1동904-20"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.09821, 37.59666]}, "properties": {"GUNAME": "중랑구", "M_NAME": "우림골목시장", "M_ADDR": "망우동 463-44"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.9204, 37.47033]}, "properties": {"GUNAME": "관악구", "M_NAME": "우림시장", "M_ADDR": "난곡동 637-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.83358, 37.52265]}, "properties": {"GUNAME": "양천구", "M_NAME": "우성상가", "M_ADDR": "신월7동 928-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.01656, 37.6485]}, "properties": {"GUNAME": "강북구", "M_NAME": "우이골목시장", "M_ADDR": "수유동 270 일대"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.01998, 37.64594]}, "properties": {"GUNAME": "강북구", "M_NAME": "우이시장", "M_ADDR": "수유2동 270-186"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.96587, 37.47439]}, "properties": {"GUNAME": "관악구", "M_NAME": "원당종합시장", "M_ADDR": "인헌동 1638-20"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.83567, 37.53345]}, "properties": {"GUNAME": "양천구", "M_NAME": "월정로시장", "M_ADDR": "신월1동 114-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.09669, 37.5914]}, "properties": {"GUNAME": "중랑구", "M_NAME": "유영시장", "M_ADDR": "망우동 530-3"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.94291, 37.59159]}, "properties": {"GUNAME": "서대문구", "M_NAME": "유진상가", "M_ADDR": "홍은동 48-84"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.98381, 37.56589]}, "properties": {"GUNAME": "중구", "M_NAME": "을지입구지하상가", "M_ADDR": "을지로2가 197"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.98721, 37.56579]}, "properties": {"GUNAME": "중구", "M_NAME": "을지지하보도상가", "M_ADDR": "을지로2가 161,을지로4가 234-1,을지로5가 28-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.91853, 37.59438]}, "properties": {"GUNAME": "은평구", "M_NAME": "응암시장", "M_ADDR": "응암동 427-126"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.066, 37.59458]}, "properties": {"GUNAME": "동대문구", "M_NAME": "이경시장", "M_ADDR": "휘경동 151-3"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.06243, 37.60446]}, "properties": {"GUNAME": "동대문구", "M_NAME": "이문제일시장", "M_ADDR": "이문동 250-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.97868, 37.5196]}, "properties": {"GUNAME": "용산구", "M_NAME": "이촌종합시장", "M_ADDR": "이촌동 301-7~301-154"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.99004, 37.53383]}, "properties": {"GUNAME": "용산구", "M_NAME": "이태원시장", "M_ADDR": "이태원동 56-9"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.94367, 37.59085]}, "properties": {"GUNAME": "서대문구", "M_NAME": "인왕시장", "M_ADDR": "홍제동 298"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.96599, 37.47411]}, "properties": {"GUNAME": "관악구", "M_NAME": "인헌시장(봉천11동)", "M_ADDR": "인헌동 1638-22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.99529, 37.56396]}, "properties": {"GUNAME": "중구", "M_NAME": "인현시장", "M_ADDR": "중구 인현동2가 192"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.08156, 37.53378]}, "properties": {"GUNAME": "광진구", "M_NAME": "자양골목시장", "M_ADDR": "자양동 631-18"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.0764, 37.53198]}, "properties": {"GUNAME": "광진구", "M_NAME": "자양종합시장", "M_ADDR": "광진구 자양동 602 "}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.98009, 37.56119]}, "properties": {"GUNAME": "중구", "M_NAME": "자유상가", "M_ADDR": "회현동1가 202"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.01632, 37.64489]}, "properties": {"GUNAME": "강북구", "M_NAME": "장미원골목시장", "M_ADDR": "수유동 316번지 일대"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.12917, 37.52731]}, "properties": {"GUNAME": "강동구", "M_NAME": "장신구 특화거리 상점가", "M_ADDR": "성내1동 545-6 일대"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.05067, 37.61205]}, "properties": {"GUNAME": "성북구", "M_NAME": "장위골목시장", "M_ADDR": "장위동 68-225 일대"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.05073, 37.61312]}, "properties": {"GUNAME": "성북구", "M_NAME": "장위시장", "M_ADDR": "장위동 238-496"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.06854, 37.57787]}, "properties": {"GUNAME": "동대문구", "M_NAME": "전곡시장", "M_ADDR": "장안동 108-5"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.05705, 37.57802]}, "properties": {"GUNAME": "동대문구", "M_NAME": "전농로터리시장", "M_ADDR": "전농동 295-52"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.00948, 37.60846]}, "properties": {"GUNAME": "성북구", "M_NAME": "정릉시장", "M_ADDR": "정릉동 400-15호 일대"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.03483, 37.58625]}, "properties": {"GUNAME": "동대문구", "M_NAME": "제기시장", "M_ADDR": "제기동 135-90"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.90679, 37.51974]}, "properties": {"GUNAME": "영등포구", "M_NAME": "제일상가", "M_ADDR": "영등포동5가18"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.92927, 37.61052]}, "properties": {"GUNAME": "은평구", "M_NAME": "제일시장", "M_ADDR": "대조동 14-1,21"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.01132, 37.56851]}, "properties": {"GUNAME": "중구", "M_NAME": "제일평화시장", "M_ADDR": "신당동 775"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.90199, 37.52152]}, "properties": {"GUNAME": "영등포구", "M_NAME": "조광시장", "M_ADDR": "영등포동6가 121-9"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.06737, 37.53887]}, "properties": {"GUNAME": "광진구", "M_NAME": "조양시장", "M_ADDR": "광진구 자양동 6-20"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.91097, 37.48285]}, "properties": {"GUNAME": "관악구", "M_NAME": "조원동 펭귄시장(신림8동)", "M_ADDR": "조원동 541-6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.98528, 37.57059]}, "properties": {"GUNAME": "종로구", "M_NAME": "종각지하쇼핑센터", "M_ADDR": "종로2가 9 "}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.99814, 37.57062]}, "properties": {"GUNAME": "종로구", "M_NAME": "종로4가지하상가", "M_ADDR": "종로구 종로4가 121"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.00161, 37.57071]}, "properties": {"GUNAME": "종로구", "M_NAME": "종로5가지하상가", "M_ADDR": "종로5가 138 "}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.00491, 37.5702]}, "properties": {"GUNAME": "종로구", "M_NAME": "종로신진시장", "M_ADDR": "종로5가 225-21"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.08216, 37.56378]}, "properties": {"GUNAME": "광진구", "M_NAME": "중곡제일골목시장", "M_ADDR": "중곡동 221-6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.08128, 37.5639]}, "properties": {"GUNAME": "광진구", "M_NAME": "중곡제일시장", "M_ADDR": "광진구 중곡동 229-5번지"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.08671, 37.59073]}, "properties": {"GUNAME": "중랑구", "M_NAME": "중랑교종합상가", "M_ADDR": "면목동 129-9"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.9558, 37.4845]}, "properties": {"GUNAME": "관악구", "M_NAME": "중부시장", "M_ADDR": "행운동 34-9"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.0018, 37.56494]}, "properties": {"GUNAME": "중구", "M_NAME": "중부시장", "M_ADDR": "오장동 139-11"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.90581, 37.52032]}, "properties": {"GUNAME": "영등포구", "M_NAME": "중앙노점", "M_ADDR": "영등포동5가 20"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.90506, 37.58144]}, "properties": {"GUNAME": "은평구", "M_NAME": "증산종합시장", "M_ADDR": "증산동 184-9"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.03952, 37.63992]}, "properties": {"GUNAME": "도봉구", "M_NAME": "창동골목시장", "M_ADDR": "창동 569"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.03883, 37.6403]}, "properties": {"GUNAME": "도봉구", "M_NAME": "창동신창시장", "M_ADDR": "창동 581"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.01187, 37.57279]}, "properties": {"GUNAME": "종로구", "M_NAME": "창신골목시장", "M_ADDR": "창신동 142-33"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.12747, 37.54065]}, "properties": {"GUNAME": "강동구", "M_NAME": "천호시장", "M_ADDR": "천호동 421-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.12809, 37.54159]}, "properties": {"GUNAME": "강동구", "M_NAME": "천호신시장", "M_ADDR": "천호동 422-2"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.00234, 37.56922]}, "properties": {"GUNAME": "중구", "M_NAME": "청계5가 지하쇼핑센터", "M_ADDR": "방산동 4-11"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.0071, 37.56803]}, "properties": {"GUNAME": "중구", "M_NAME": "청계6가 지하도상가", "M_ADDR": "을지로6가 18-11"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.05775, 37.52233]}, "properties": {"GUNAME": "강남구", "M_NAME": "청담삼익시장", "M_ADDR": "청담동134-20"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.04964, 37.52642]}, "properties": {"GUNAME": "강남구", "M_NAME": "청담제일시장", "M_ADDR": "청담동122"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.04092, 37.57805]}, "properties": {"GUNAME": "동대문구", "M_NAME": "청량리수산시장", "M_ADDR": "용두동 20"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.04334, 37.58078]}, "properties": {"GUNAME": "동대문구", "M_NAME": "청량리전통시장", "M_ADDR": "청량리동 777"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.04081, 37.57931]}, "properties": {"GUNAME": "동대문구", "M_NAME": "청량리종합시장", "M_ADDR": "제기동 998"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.04241, 37.57968]}, "properties": {"GUNAME": "동대문구", "M_NAME": "청량리청과물시장", "M_ADDR": "제기동 635-35"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.01492, 37.56945]}, "properties": {"GUNAME": "중구", "M_NAME": "청평화시장", "M_ADDR": "신당동 217-91"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.00542, 37.57483]}, "properties": {"GUNAME": "종로구", "M_NAME": "충신시장", "M_ADDR": "충신동 35-8"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.0774, 37.5993]}, "properties": {"GUNAME": "중랑구", "M_NAME": "태능시장", "M_ADDR": "중화동 314-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.96871, 37.58082]}, "properties": {"GUNAME": "종로구", "M_NAME": "통인시장", "M_ADDR": "종로구 통인동 44"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.00631, 37.56913]}, "properties": {"GUNAME": "중구", "M_NAME": "통일상가", "M_ADDR": "을지로6가 17"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.00631, 37.56913]}, "properties": {"GUNAME": "중구", "M_NAME": "평화시장", "M_ADDR": "을지로6가 17"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.94909, 37.59866]}, "properties": {"GUNAME": "서대문구", "M_NAME": "포방터시장", "M_ADDR": "홍은동 9-160"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.9014, 37.47805]}, "properties": {"GUNAME": "금천구", "M_NAME": "푸른터시장", "M_ADDR": "금천구 독산동 957"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.12112, 37.53717]}, "properties": {"GUNAME": "송파구", "M_NAME": "풍납시장", "M_ADDR": "풍납동 152-81일대"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.08673, 37.59364]}, "properties": {"GUNAME": "중랑구", "M_NAME": "한남프라자", "M_ADDR": "상봉동 107-6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.06986, 37.54354]}, "properties": {"GUNAME": "광진구", "M_NAME": "한아름시장", "M_ADDR": "화양동 10-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.0405, 37.55946]}, "properties": {"GUNAME": "성동구", "M_NAME": "한양시장", "M_ADDR": "행당동 19-54"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.003, 37.57005]}, "properties": {"GUNAME": "종로구", "M_NAME": "한일상가", "M_ADDR": "종로5가 314-7"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.00166, 37.57025]}, "properties": {"GUNAME": "종로구", "M_NAME": "한일지하상가(마전교지하쇼핑센터)", "M_ADDR": "종로5가 398 "}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.91312, 37.54821]}, "properties": {"GUNAME": "마포구", "M_NAME": "합정시장", "M_ADDR": "합정동 375-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.03259, 37.56059]}, "properties": {"GUNAME": "성동구", "M_NAME": "행당시장", "M_ADDR": "행당동 298-86,118"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.90432, 37.45982]}, "properties": {"GUNAME": "금천구", "M_NAME": "현대시장", "M_ADDR": "시흥동 856~888"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.92313, 37.55521]}, "properties": {"GUNAME": "마포구", "M_NAME": "홍대 걷고싶은 거리", "M_ADDR": "동교동 163~170, 서교동 330-347 일대"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.84411, 37.54287]}, "properties": {"GUNAME": "강서구", "M_NAME": "화곡본동시장", "M_ADDR": "화곡동 98-45"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.83932, 37.53505]}, "properties": {"GUNAME": "강서구", "M_NAME": "화곡중앙골목시장", "M_ADDR": "강서구 화곡동 370-37"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.83947, 37.53534]}, "properties": {"GUNAME": "강서구", "M_NAME": "화곡중앙시장", "M_ADDR": "화곡동 370-76"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.06925, 37.54348]}, "properties": {"GUNAME": "광진구", "M_NAME": "화양제일골목시장", "M_ADDR": "화양동 34-72"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.05494, 37.59094]}, "properties": {"GUNAME": "동대문구", "M_NAME": "회기시장", "M_ADDR": "회기동 57-22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.97932, 37.55729]}, "properties": {"GUNAME": "중구", "M_NAME": "회현지하도상가", "M_ADDR": "중구 회현동2가"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.97655, 37.55001]}, "properties": {"GUNAME": "용산구", "M_NAME": "후암시장", "M_ADDR": "후암동 103"}}]},
+            "buffer": 0,
+            "maxzoom": 10 + 1,
+            "cluster": true,
+            "clusterMaxZoom": 10,
+            "clusterRadius": 30,
+            "generateId": true
+        });
+
+        map.addLayer({
+            "id": "label",
+            "source": "data",
+            "type": "symbol",
+            "maxzoom": 24,
+            "minzoom": 0,
+            "layout": {
+                "text-field": "{point_count_abbreviated}",
+                "text-size" : generateInterpolateExpression('zoom', [[0, 12],[22, 3* 12]] ),
+            },
+            "paint": {
+                "text-halo-color": "white",
+                "text-halo-width": generatePropertyExpression('interpolate', 'zoom', [[0,1], [18,5* 1]]),
+                "text-color": ["case",
+                    ["boolean", ["feature-state", "hover"], false], 
+                    "black", 
+                    "#131516"]
+            }
+        }, "" )
+
+        map.addLayer({
+            "id": "circle-cluster",
+            "source": "data",
+            "type": "circle",
+            "maxzoom": 24,
+            "minzoom": 0,
+            "filter": ["has", "point_count"],
+            "paint": {
+                "circle-color": ["case",
+                    ["boolean", ["feature-state", "hover"], false], 
+                    "black", 
+                    generateInterpolateExpression( "point_count", [[5, 'rgb(140,81,10)'], [10, 'rgb(216,179,101)'], [15, 'rgb(246,232,195)'], [20, 'rgb(199,234,229)'], [25, 'rgb(90,180,172)'], [30, 'rgb(1,102,94)']] )],
+                "circle-radius" : generateInterpolateExpression( "point_count", [[1, 5], [10, 10], [50, 15], [100, 20]] ),
+                "circle-stroke-color": ["case",
+                    ["boolean", ["feature-state", "hover"], false], 
+                    "black", "grey"],
+                "circle-stroke-width": generatePropertyExpression('interpolate', 'zoom', [[0,0.1], [18,5* 0.1]]),
+                "circle-opacity" : 0.9,
+                "circle-stroke-opacity" : 0.9
+            }
+        }, "label");
+
+        map.addLayer({
+            "id": "circle-unclustered",
+            "source": "data",
+            "type": "circle",
+            "maxzoom": 24,
+            "minzoom": 0,
+            "filter": ["!has", "point_count"],
+            "paint": {
+                "circle-color": ["case",
+                    ["boolean", ["feature-state", "hover"], false], 
+                    "black", 
+                    "black"],
+                "circle-radius" : generateInterpolateExpression( 'zoom', [[0, 2 ], [22,10 * 2]]),
+                "circle-stroke-color": ["case",
+                    ["boolean", ["feature-state", "hover"], false], 
+                    "black", 
+                    "grey"],
+                "circle-stroke-width": generatePropertyExpression('interpolate', 'zoom', [[0,0.1], [18,5* 0.1]]),
+                "circle-opacity" : 0.9,
+                "circle-stroke-opacity" : 0.9
+            }
+        }, "circle-cluster");
+        
+        
+
+        // Popups
+        
+            var popupAction = 'mousemove',
+                popupSettings =  {
+                    closeButton: false,
+                    closeOnClick: false
+                };
+        
+
+        // Create a popup
+        var popup = new mapboxgl.Popup(popupSettings);
+        
+        
+
+        var hoveredStateId = 0;
+        
+        // Show the popup on mouseover
+        map.on(popupAction, function(e) {
+            
+            var features = map.queryRenderedFeatures(e.point, {layers: ['circle-unclustered', 'circle-cluster', 'label'] });
+
+            if (features.length > 0) {
+                map.getCanvas().style.cursor = 'pointer';
+                var f = features[0];
+                newHoveredStateId = f.id;
+                if (newHoveredStateId != hoveredStateId) {
+                    map.removeFeatureState({source: 'data', id: hoveredStateId});
+                    hoveredStateId = newHoveredStateId;
+                }
+                map.setFeatureState({source: 'data', id: hoveredStateId}, { hover: true});
+                let popup_html = '<div><li><b>Location</b>: ' + f.geometry.coordinates[0].toPrecision(6) + 
+                    ', ' + f.geometry.coordinates[1].toPrecision(6) + '</li>';
+
+                for (key in f.properties) {
+                    popup_html += '<li><b> ' + key + '</b>: ' + f.properties[key] + ' </li>'
+                }
+
+                popup_html += '</div>'
+                popup.setLngLat(e.lngLat)
+                    .setHTML(popup_html)
+                    .addTo(map);
+            }
+            else {
+                map.getCanvas().style.cursor = '';
+                popup.remove();
+                map.removeFeatureState({source: 'data', id: hoveredStateId});
+            }
+        });
+
+        
+        
+        map.on('click', 'circle-unclustered', function(e) {
+            map.easeTo({
+                center: e.features[0].geometry.coordinates
+            });
+        });
+
+        map.on('click', 'circle-cluster', function(e) {
+            map.easeTo({
+                center: e.features[0].geometry.coordinates
+            });
+        });
+    });
+
+
+
+</script>
+
+<!-- add capability to export map or legend to image file -->
+
+
+</body>
+</html>
